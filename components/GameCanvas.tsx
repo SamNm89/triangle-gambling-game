@@ -55,17 +55,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // --- Dimensions & Spacing ---
       // Adjusted padding to maximize space on desktop ("Zoomed in" feel)
-      const paddingTop = isDesktop ? 30 : 50;
+      const paddingTop = isDesktop ? 40 : 50;
       const paddingBottom = isDesktop ? 60 : 90;
       const usableHeight = height - paddingTop - paddingBottom;
-      const spacing = usableHeight / rowCount;
+
+      // Calculate spacing to fit BOTH width and height
+      // We need to fit 'rowCount' columns horizontally + some margin
+      const maxSpacingX = (width - (isDesktop ? 60 : 20)) / rowCount;
+      const maxSpacingY = usableHeight / rowCount;
+      const spacing = Math.min(maxSpacingX, maxSpacingY);
+
+      // Re-center startX based on the actual spacing
       const startX = width / 2;
 
       // --- Draw Pegs ---
       ctx.fillStyle = '#ffffff';
       // Make pegs slightly larger on desktop for better visibility
       const pegRadius = isDesktop
-        ? Math.max(3, spacing * 0.2)
+        ? Math.max(3, spacing * 0.18)
         : Math.max(2, Math.min(4, spacing * 0.15));
 
       for (let row = 0; row <= rowCount; row++) {
@@ -85,12 +92,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // --- Draw Multiplier Boxes ---
       const lastRowY = paddingTop + rowCount * spacing;
-      // Calculate box size dynamically but ensure visibility
-      const boxWidth = spacing * (isDesktop ? 1.1 : 0.95);
-      const boxHeight = Math.min(isDesktop ? 50 : 40, Math.max(24, spacing * (isDesktop ? 1.1 : 0.9)));
 
-      // Dynamic font size
-      const fontSize = Math.max(12, Math.min(isDesktop ? 20 : 16, spacing * (isDesktop ? 0.6 : 0.45)));
+      // Boxes should be exactly spacing width (minus small gap)
+      const boxWidth = spacing * 0.94;
+      const boxHeight = Math.min(isDesktop ? 40 : 40, spacing * 0.8);
+
+      // Dynamic font size - smaller to fit
+      const fontSize = Math.max(10, spacing * 0.35);
       ctx.font = `800 ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -98,7 +106,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       multipliers.forEach((m, idx) => {
         const x = startX + (idx - rowCount / 2) * spacing;
         // Position boxes slightly below the last row
-        const y = lastRowY + spacing * 0.6 + boxHeight * 0.2;
+        const y = lastRowY + spacing * 0.5 + boxHeight * 0.2;
 
         const rx = x - boxWidth / 2;
         const ry = y - boxHeight / 2;
