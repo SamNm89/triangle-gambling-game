@@ -21,14 +21,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Keep track of internal ball state (position) separate from React state for 60fps
-  const activeBallsRef = useRef<Ball[]>([]); 
-  
+  const activeBallsRef = useRef<Ball[]>([]);
+
   // Sync props to ref when new balls are added
   useEffect(() => {
     // Check for new balls that aren't in our active ref
     const currentIds = new Set(activeBallsRef.current.map(b => b.id));
     const newBalls = balls.filter(b => !currentIds.has(b.id));
-    
+
     if (newBalls.length > 0) {
       activeBallsRef.current = [...activeBallsRef.current, ...newBalls];
     }
@@ -49,26 +49,30 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       lastTime = time;
 
       ctx.clearRect(0, 0, width, height);
-      
+
       const { rowCount } = config;
+      const isDesktop = width > 768;
 
       // --- Dimensions & Spacing ---
-      // Adjusted padding to ensure multipliers at the bottom are fully visible
-      const paddingTop = 50; 
-      const paddingBottom = 90; 
+      // Adjusted padding to maximize space on desktop ("Zoomed in" feel)
+      const paddingTop = isDesktop ? 30 : 50;
+      const paddingBottom = isDesktop ? 60 : 90;
       const usableHeight = height - paddingTop - paddingBottom;
       const spacing = usableHeight / rowCount;
       const startX = width / 2;
 
       // --- Draw Pegs ---
       ctx.fillStyle = '#ffffff';
-      const pegRadius = Math.max(2, Math.min(4, spacing * 0.15));
-      
+      // Make pegs slightly larger on desktop for better visibility
+      const pegRadius = isDesktop
+        ? Math.max(3, spacing * 0.2)
+        : Math.max(2, Math.min(4, spacing * 0.15));
+
       for (let row = 0; row <= rowCount; row++) {
         for (let col = 0; col <= row; col++) {
           const x = startX + (col - row / 2) * spacing;
           const y = paddingTop + row * spacing;
-          
+
           ctx.beginPath();
           ctx.arc(x, y, pegRadius, 0, Math.PI * 2);
           ctx.shadowBlur = 4;
@@ -82,11 +86,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // --- Draw Multiplier Boxes ---
       const lastRowY = paddingTop + rowCount * spacing;
       // Calculate box size dynamically but ensure visibility
-      const boxWidth = spacing * 0.95; 
-      const boxHeight = Math.min(40, Math.max(24, spacing * 0.9)); // Ensure min height for text
-      
+      const boxWidth = spacing * (isDesktop ? 1.1 : 0.95);
+      const boxHeight = Math.min(isDesktop ? 50 : 40, Math.max(24, spacing * (isDesktop ? 1.1 : 0.9)));
+
       // Dynamic font size
-      const fontSize = Math.max(12, Math.min(16, spacing * 0.45));
+      const fontSize = Math.max(12, Math.min(isDesktop ? 20 : 16, spacing * (isDesktop ? 0.6 : 0.45)));
       ctx.font = `800 ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -94,18 +98,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       multipliers.forEach((m, idx) => {
         const x = startX + (idx - rowCount / 2) * spacing;
         // Position boxes slightly below the last row
-        const y = lastRowY + spacing * 0.6 + boxHeight * 0.2; 
+        const y = lastRowY + spacing * 0.6 + boxHeight * 0.2;
 
-        const rx = x - boxWidth/2;
-        const ry = y - boxHeight/2;
-        
+        const rx = x - boxWidth / 2;
+        const ry = y - boxHeight / 2;
+
         ctx.beginPath();
         ctx.roundRect(rx, ry, boxWidth, boxHeight, 4);
-        
+
         // Background with opacity
         ctx.fillStyle = `rgba(${m.color}, 0.2)`;
         ctx.fill();
-        
+
         // Border Stroke for definition
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = `rgba(${m.color}, 0.6)`;
@@ -129,34 +133,34 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (ball.progress >= 1) {
           ball.progress = 0;
           ball.currentRow++;
-          
+
           if (ball.currentRow > 0 && ball.currentRow < rowCount) {
-             playPopSound(1 + (ball.currentRow / rowCount) * 0.5); 
+            playPopSound(1 + (ball.currentRow / rowCount) * 0.5);
           }
 
           if (ball.currentRow >= rowCount) {
-             ball.finished = true;
-             // Calculate final index based on path (right moves)
-             const rightMoves = ball.targetPath.filter(d => d === 1).length;
-             // Map to multiplier index
-             const finalIndex = rightMoves; 
-             const safeIndex = Math.min(Math.max(finalIndex, 0), multipliers.length - 1);
-             const multiplier = multipliers[safeIndex].value;
+            ball.finished = true;
+            // Calculate final index based on path (right moves)
+            const rightMoves = ball.targetPath.filter(d => d === 1).length;
+            // Map to multiplier index
+            const finalIndex = rightMoves;
+            const safeIndex = Math.min(Math.max(finalIndex, 0), multipliers.length - 1);
+            const multiplier = multipliers[safeIndex].value;
 
-             playWinSound(multiplier);
-             onBallFinish(ball.id, multiplier, ball.value);
+            playWinSound(multiplier);
+            onBallFinish(ball.id, multiplier, ball.value);
           }
         }
 
         // Render Interpolation
         const getColAtRow = (r: number) => {
-           if (r < 0) return 0;
-           let xOffset = 0;
-           for(let i=0; i < r; i++) {
-              const dir = ball.targetPath[i] === 0 ? -0.5 : 0.5;
-              xOffset += dir;
-           }
-           return xOffset;
+          if (r < 0) return 0;
+          let xOffset = 0;
+          for (let i = 0; i < r; i++) {
+            const dir = ball.targetPath[i] === 0 ? -0.5 : 0.5;
+            xOffset += dir;
+          }
+          return xOffset;
         };
 
         const currentXOffset = getColAtRow(ball.currentRow);
@@ -165,31 +169,31 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         const y1 = paddingTop + ball.currentRow * spacing;
         const y2 = paddingTop + (ball.currentRow + 1) * spacing;
-        
-        const x1 = startX + (currentXOffset * spacing); 
+
+        const x1 = startX + (currentXOffset * spacing);
         const x2 = startX + (nextXOffset * spacing);
 
         const t = ball.progress;
-        
+
         const hash = (ball.id.charCodeAt(0) + ball.currentRow) % 100;
         const jitter = (hash / 100 - 0.5) * (spacing * 0.1) * Math.sin(t * Math.PI);
 
         const curX = x1 + (x2 - x1) * t + jitter;
-        
+
         // Gravity parabola
-        const bounceHeight = spacing * 0.4; 
+        const bounceHeight = spacing * 0.4;
         const curY = (y1 + (y2 - y1) * t) - (Math.sin(t * Math.PI) * bounceHeight);
 
         let renderX, renderY;
         if (ball.currentRow === -1) {
-            // Drop from spawner
-            const sy1 = 20; // Spawner height
-            const sy2 = paddingTop;
-            renderX = startX;
-            renderY = sy1 + (sy2 - sy1) * t; 
+          // Drop from spawner
+          const sy1 = 20; // Spawner height
+          const sy2 = paddingTop;
+          renderX = startX;
+          renderY = sy1 + (sy2 - sy1) * t;
         } else {
-            renderX = curX;
-            renderY = curY;
+          renderX = curX;
+          renderY = curY;
         }
 
         ctx.beginPath();
