@@ -3,6 +3,7 @@
 I saw it in a reel 😂 and wanted to play it without gambling for real.
 
 ## How to Play
+- Visit the link https://samnm89.github.io/triangle-gambling-game/
 - Set your bet amount
 - Choose your risk level (Low, Medium, High)
 - Select number of rows (8-16)
